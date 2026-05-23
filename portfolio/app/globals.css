@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-display: 'Playfair Display', serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-gold: #C9A84C;
+  --color-gold-light: #E8C97A;
+  --color-gold-bright: #FFD700;
+  --color-gold-deep: #A07830;
+
+  --color-emerald-glow: #00C6A7;
+
+  --color-silver: #C0C0C0;
+  --color-silver-light: #E8E8E8;
+  --color-silver-dark: #8A8A8A;
+
+  --color-obsidian: #050505;
+  --color-obsidian-light: #0D0D0D;
+  --color-obsidian-mid: #111111;
+  --color-obsidian-card: #141414;
+  --color-obsidian-border: #1A1A1A;
+
+  --shadow-gold: 0 0 20px rgba(201,168,76,0.3), 0 0 40px rgba(201,168,76,0.1);
+  --shadow-gold-lg: 0 0 40px rgba(201,168,76,0.4), 0 0 80px rgba(201,168,76,0.2);
+  --shadow-emerald: 0 0 20px rgba(16,185,129,0.3), 0 0 40px rgba(16,185,129,0.1);
+  --shadow-glass: 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; overflow-x: hidden; }
+
+body {
+  background-color: #050505;
+  color: #F8F8F8;
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #050505; }
+::-webkit-scrollbar-thumb { background: #C9A84C; border-radius: 2px; }
+
+.glass {
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.glass-gold {
+  background: rgba(201,168,76,0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(201,168,76,0.2);
+}
+
+.glass-emerald {
+  background: rgba(16,185,129,0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(16,185,129,0.2);
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #C9A84C, #FFD700, #E8C97A);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-emerald {
+  background: linear-gradient(135deg, #10B981, #00C6A7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-silver {
+  background: linear-gradient(135deg, #C0C0C0, #E8E8E8, #C0C0C0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glow-gold { text-shadow: 0 0 20px rgba(201,168,76,0.8), 0 0 40px rgba(201,168,76,0.4); }
+.glow-emerald { text-shadow: 0 0 20px rgba(16,185,129,0.8), 0 0 40px rgba(16,185,129,0.4); }
+
+.line-gold { height: 1px; background: linear-gradient(90deg, transparent, #C9A84C, transparent); }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(201,168,76,0.2); }
+  50% { border-color: rgba(201,168,76,0.7); }
+}
+
+@keyframes ping-ring {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.animate-float { animation: float 6s ease-in-out infinite; }
+.animate-glow-pulse { animation: glowPulse 3s ease-in-out infinite; }
+.animate-fade-up { animation: fadeUp 0.8s ease-out forwards; }
+.animate-border-glow { animation: borderGlow 3s ease-in-out infinite; }
+.animate-ping-ring { animation: ping-ring 2s cubic-bezier(0,0,0.2,1) infinite; }
+
+::selection { background: rgba(201,168,76,0.3); color: #FFD700; }
