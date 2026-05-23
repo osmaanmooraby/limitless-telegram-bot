@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   transpilePackages: ["three"],
   output: "export",
   trailingSlash: true,
+  basePath: "/limitless-telegram-bot",
+  assetPrefix: "/limitless-telegram-bot",
   images: {
     unoptimized: true,
   },
