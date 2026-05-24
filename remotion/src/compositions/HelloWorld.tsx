@@ -1,70 +1,70 @@
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { z } from 'zod';
 import {
-  AbsoluteFill,
-  interpolate,
-  spring,
-  useCurrentFrame,
-  useVideoConfig,
-} from "remotion";
-import { z } from "zod";
+  COLOR, GRADIENT, LAYOUT, TEXT, TIMING,
+  fadeOut, gradientText, spr, SPRING, DIVIDER, SPACE,
+} from '../styles';
 
 export const helloWorldSchema = z.object({
-  title: z.string().default("Hello, World!"),
+  title: z.string().default('Hello, World!'),
 });
 
 type Props = z.infer<typeof helloWorldSchema>;
 
-/**
- * HelloWorld — a minimal composition demonstrating:
- *   • spring() for physics-based easing
- *   • interpolate() for color and opacity
- *   • useCurrentFrame / useVideoConfig hooks
- */
 export const HelloWorld: React.FC<Props> = ({ title }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
-  // Bounce-in scale
-  const scale = spring({
-    frame,
-    fps,
-    config: { damping: 12, stiffness: 100 },
-  });
+  // Entrance
+  const s = spr(frame, fps, SPRING.cinematic);
+  const scale   = 0.88 + s * 0.12;
+  const opacity = Math.min(frame / TIMING.enter, 1);
 
-  // Fade out near the end
-  const opacity = interpolate(
-    frame,
-    [durationInFrames - 30, durationInFrames],
-    [1, 0],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-  );
+  // Fade-out
+  const fade = fadeOut(frame, durationInFrames - TIMING.exit, durationInFrames);
 
-  // Animated gradient hue shift
-  const hue = interpolate(frame, [0, durationInFrames], [220, 320]);
+  // Underline grows
+  const lineS   = spr(frame, fps, SPRING.smooth, 12);
+  const lineWidth = lineS * 520;
 
   return (
-    <AbsoluteFill
-      style={{
-        background: `linear-gradient(135deg, hsl(${hue}, 70%, 12%), hsl(${hue + 40}, 80%, 6%))`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        opacity,
-      }}
-    >
-      <h1
-        style={{
-          color: "#fff",
-          fontSize: 120,
-          fontFamily: "sans-serif",
-          fontWeight: 900,
-          letterSpacing: -4,
-          transform: `scale(${scale})`,
-          margin: 0,
-          textShadow: `0 0 80px hsl(${hue + 20}, 100%, 70%)`,
-        }}
-      >
-        {title}
-      </h1>
+    <AbsoluteFill style={{ ...LAYOUT.canvas, opacity: 1 - fade }}>
+      {/* Subtle mesh gradient on white */}
+      <AbsoluteFill style={{ background: GRADIENT.pageBase, opacity: 0.6 }} />
+
+      <AbsoluteFill style={{ ...LAYOUT.centre, flexDirection: 'column', gap: SPACE[6] }}>
+        {/* Eyebrow */}
+        <p
+          style={{
+            ...TEXT.eyebrow,
+            opacity: opacity * 0.5,
+            transform: `translateY(${(1 - s) * 20}px)`,
+          }}
+        >
+          10x Limitless
+        </p>
+
+        {/* Main title */}
+        <h1
+          style={{
+            ...TEXT.display1,
+            transform: `scale(${scale})`,
+            opacity,
+            ...gradientText(GRADIENT.textElectric),
+          }}
+        >
+          {title}
+        </h1>
+
+        {/* Animated accent line */}
+        <div
+          style={{
+            ...DIVIDER.accent,
+            width: lineWidth,
+            transition: 'none',
+          }}
+        />
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };

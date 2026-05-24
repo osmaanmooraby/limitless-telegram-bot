@@ -1,103 +1,88 @@
+import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
+import { z } from 'zod';
 import {
-  AbsoluteFill,
-  interpolate,
-  spring,
-  useCurrentFrame,
-  useVideoConfig,
-} from "remotion";
-import { z } from "zod";
+  COLOR, GRADIENT, LAYOUT, TEXT, SPACE, TIMING,
+  fadeIn, fadeOut, gradientText, spr, SPRING, DIVIDER, CLAMP,
+} from '../styles';
 
 export const logoAnimationSchema = z.object({
-  brand: z.string().default("10x Limitless"),
+  brand: z.string().default('10x Limitless'),
 });
 
 type Props = z.infer<typeof logoAnimationSchema>;
 
-/**
- * LogoAnimation — animated brand intro using:
- *   • Sequence for layered timing
- *   • spring() for smooth entrance
- *   • Animated SVG accent line
- */
 export const LogoAnimation: React.FC<Props> = ({ brand }) => {
   const frame = useCurrentFrame();
-  const { fps, width } = useVideoConfig();
+  const { fps, durationInFrames, width } = useVideoConfig();
 
-  // Logo drop-in
-  const logoScale = spring({
-    frame,
-    fps,
-    config: { damping: 15, stiffness: 80 },
-  });
+  // Brand word entrance
+  const brandS    = spr(frame, fps, SPRING.cinematic);
+  const brandY    = interpolate(brandS, [0, 1], [80, 0]);
+  const brandFade = fadeIn(frame, 0, TIMING.enter);
 
-  const logoOpacity = interpolate(frame, [0, 15], [0, 1], {
-    extrapolateRight: "clamp",
-  });
+  // Line sweep (starts at frame 18)
+  const lineS   = spr(frame, fps, SPRING.smooth, 18);
+  const lineW   = lineS * (width * 0.42);
 
-  // Underline sweep
-  const lineWidth = interpolate(frame, [20, 60], [0, width * 0.5], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  // Tagline (starts at frame 40)
+  const tagFade = fadeIn(frame, 40, 65);
+  const tagY    = interpolate(
+    spr(frame, fps, SPRING.gentle, 40),
+    [0, 1],
+    [30, 0],
+  );
 
-  // Tagline fade (starts at frame 45)
-  const taglineOpacity = interpolate(frame, [45, 75], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  // Scene fade-out
+  const exitFade = fadeOut(frame, durationInFrames - TIMING.exit, durationInFrames);
 
   return (
-    <AbsoluteFill
-      style={{
-        background: "linear-gradient(160deg, #0d0d0d 0%, #1a1a2e 100%)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 0,
-      }}
-    >
-      {/* Brand name */}
-      <div
+    <AbsoluteFill style={{ ...LAYOUT.canvas, opacity: 1 - exitFade }}>
+      {/* Page gradient */}
+      <AbsoluteFill style={{ background: GRADIENT.pageFade }} />
+
+      {/* Content centre */}
+      <AbsoluteFill
         style={{
-          color: "#fff",
-          fontSize: 110,
-          fontFamily: "sans-serif",
-          fontWeight: 900,
-          letterSpacing: -3,
-          opacity: logoOpacity,
-          transform: `scale(${logoScale})`,
+          ...LAYOUT.centre,
+          flexDirection: 'column',
+          gap: 0,
         }}
       >
-        {brand}
-      </div>
+        {/* Brand name */}
+        <h1
+          style={{
+            ...TEXT.display1,
+            opacity: brandFade,
+            transform: `translateY(${brandY}px)`,
+            ...gradientText(GRADIENT.textInk),
+          }}
+        >
+          {brand}
+        </h1>
 
-      {/* Animated accent line */}
-      <div
-        style={{
-          height: 4,
-          width: lineWidth,
-          background: "linear-gradient(90deg, #6366f1, #a855f7, #ec4899)",
-          borderRadius: 2,
-          marginTop: 20,
-        }}
-      />
+        {/* Accent line — sweeps left to right */}
+        <div
+          style={{
+            marginTop: SPACE[6],
+            ...DIVIDER.accent,
+            width: lineW,
+            background: GRADIENT.spectrum,
+          }}
+        />
 
-      {/* Tagline */}
-      <div
-        style={{
-          color: "rgba(255,255,255,0.6)",
-          fontSize: 32,
-          fontFamily: "sans-serif",
-          fontWeight: 400,
-          letterSpacing: 6,
-          textTransform: "uppercase",
-          marginTop: 24,
-          opacity: taglineOpacity,
-        }}
-      >
-        by Osmaan Mooraby
-      </div>
+        {/* Tagline */}
+        <p
+          style={{
+            ...TEXT.eyebrow,
+            marginTop: SPACE[8],
+            opacity: tagFade,
+            transform: `translateY(${tagY}px)`,
+            color: COLOR.steel,
+          }}
+        >
+          by Osmaan Mooraby
+        </p>
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };
