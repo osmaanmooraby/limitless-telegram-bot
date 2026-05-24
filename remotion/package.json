@@ -1,0 +1,49 @@
+{
+  "name": "limitless-remotion",
+  "version": "1.0.0",
+  "description": "Remotion video animation studio for 10x Limitless",
+  "main": "src/index.ts",
+  "scripts": {
+    "studio": "npx remotion studio src/index.ts",
+    "render": "npx remotion render src/index.ts",
+    "render:hello": "npx remotion render src/index.ts HelloWorld --output out/HelloWorld.mp4",
+    "render:text": "npx remotion render src/index.ts TextReveal --output out/TextReveal.mp4",
+    "render:logo": "npx remotion render src/index.ts LogoAnimation --output out/LogoAnimation.mp4",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["remotion", "video", "animation"],
+  "author": "Osmaan Mooraby",
+  "license": "MIT",
+  "dependencies": {
+    "@remotion/animation-utils": "4.0.465",
+    "@remotion/bundler": "4.0.465",
+    "@remotion/captions": "4.0.465",
+    "@remotion/cli": "4.0.465",
+    "@remotion/fonts": "4.0.465",
+    "@remotion/gif": "4.0.465",
+    "@remotion/google-fonts": "4.0.465",
+    "@remotion/layout-utils": "4.0.465",
+    "@remotion/lottie": "4.0.465",
+    "@remotion/media-utils": "4.0.465",
+    "@remotion/motion-blur": "4.0.465",
+    "@remotion/noise": "4.0.465",
+    "@remotion/paths": "4.0.465",
+    "@remotion/player": "4.0.465",
+    "@remotion/preload": "4.0.465",
+    "@remotion/renderer": "4.0.465",
+    "@remotion/shapes": "4.0.465",
+    "@remotion/three": "4.0.465",
+    "@remotion/transitions": "4.0.465",
+    "@remotion/zod-types": "4.0.465",
+    "@types/three": "^0.184.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.465",
+    "three": "^0.184.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3"
+  }
+}
