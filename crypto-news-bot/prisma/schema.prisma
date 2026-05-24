@@ -1,0 +1,83 @@
+// Prisma schema for the Crypto News Automation Bot
+// Uses SQLite for easy local development; swap provider to "postgresql" for Supabase
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Articles ────────────────────────────────────────────────────────────────
+// Every article fetched from the Cointelegraph RSS feed is stored here.
+// The `guid` field acts as the deduplication key.
+model Article {
+  id          String   @id @default(cuid())
+  guid        String   @unique  // RSS item GUID – prevents re-processing the same story
+  title       String
+  url         String
+  description String   // Raw excerpt from RSS
+  author      String?
+  category    String?
+  imageUrl    String?  // Hero image from feed
+  publishedAt DateTime
+  isProcessed Boolean  @default(false) // true once posts have been generated
+  createdAt   DateTime @default(now())
+
+  posts Post[]
+}
+
+// ─── Posts ────────────────────────────────────────────────────────────────────
+// One row per platform per article.
+// status flow: pending → approved → posted
+//              pending → rejected
+//              approved → failed  (if API call fails)
+model Post {
+  id           String    @id @default(cuid())
+  articleId    String
+  article      Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  // Platform slug: facebook_page | x | linkedin | whatsapp | facebook_profile
+  platform     String
+
+  content      String    // The rewritten, platform-ready caption
+  imagePrompt  String?   // DALL-E / Stable Diffusion prompt
+  imageUrl     String?   // URL of generated image (if any)
+
+  // Workflow status
+  status       String    @default("pending")
+  // "pending"          = awaiting admin review
+  // "approved"         = admin approved, ready to post
+  // "posted"           = successfully published
+  // "failed"           = posting attempt failed
+  // "rejected"         = admin rejected
+  // "manual"           = requires manual copy-paste (Profile / WhatsApp)
+
+  scheduledAt  DateTime? // When to auto-post (set by scheduler)
+  postedAt     DateTime? // When it was actually posted
+  postId       String?   // External platform post ID after publishing
+  errorMessage String?   // Last error if status = "failed"
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+// ─── Logs ─────────────────────────────────────────────────────────────────────
+// Every automation run step creates a log entry so you can audit what happened.
+model Log {
+  id        String   @id @default(cuid())
+  runAt     DateTime @default(now())
+
+  // type: fetch | generate | post | scheduler | image
+  type      String
+
+  // status: success | error | warning | info
+  status    String
+
+  message   String
+  details   String?  // JSON-encoded extra info (article URL, platform, etc.)
+
+  createdAt DateTime @default(now())
+}

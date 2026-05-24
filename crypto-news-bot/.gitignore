@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+dist-server/
+
+# Environment — NEVER commit these
+.env
+.env.local
+.env.production
+.env.staging
+
+# Database
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Prisma generated
+prisma/migrations/
+
+# Build outputs
+build/
+dist/

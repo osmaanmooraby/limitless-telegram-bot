@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sidebar-width: 240px;
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  background-color: #0f1117;
+  color: #e2e8f0;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: #1a1f2e; }
+::-webkit-scrollbar-thumb  { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* Status badge utilities */
+.badge-pending  { @apply bg-yellow-500/20 text-yellow-300 border border-yellow-500/30; }
+.badge-approved { @apply bg-blue-500/20   text-blue-300   border border-blue-500/30;   }
+.badge-posted   { @apply bg-green-500/20  text-green-300  border border-green-500/30;  }
+.badge-failed   { @apply bg-red-500/20    text-red-300    border border-red-500/30;    }
+.badge-rejected { @apply bg-slate-500/20  text-slate-400  border border-slate-500/30;  }
+.badge-manual   { @apply bg-purple-500/20 text-purple-300 border border-purple-500/30; }
+
+/* Card styles */
+.glass-card {
+  @apply bg-slate-800/50 border border-slate-700/50 rounded-xl backdrop-blur-sm;
+}
+
+/* Platform icons colours */
+.platform-x               { color: #e2e8f0; }
+.platform-facebook_page   { color: #3b82f6; }
+.platform-linkedin        { color: #0ea5e9; }
+.platform-whatsapp        { color: #22c55e; }
+.platform-facebook_profile { color: #6366f1; }
