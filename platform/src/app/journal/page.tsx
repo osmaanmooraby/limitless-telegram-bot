@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   BookOpen, Plus, TrendingUp, TrendingDown, Target, X,
-  BarChart3, Trophy, AlertTriangle, Calendar, DollarSign
+  BarChart3, Trophy, AlertTriangle, Calendar, DollarSign, Download
 } from 'lucide-react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { cn, formatPrice, formatPercent } from '@/lib/utils'
@@ -37,6 +37,27 @@ export default function JournalPage() {
   }
 
   useEffect(() => { fetchTrades() }, [])
+
+  function exportToCsv() {
+    if (trades.length === 0) { toast.error('No trades to export'); return }
+    const headers = ['Symbol', 'Exchange', 'Direction', 'Status', 'Entry Price', 'Exit Price', 'Quantity', 'Leverage', 'P&L', 'P&L %', 'Emotion', 'Notes', 'Entry Date', 'Exit Date']
+    const rows = trades.map((t) => [
+      t.symbol, t.exchange, t.direction, t.status,
+      t.entryPrice, t.exitPrice ?? '', t.quantity, t.leverage,
+      t.pnl ?? '', t.pnlPercent ?? '',
+      t.emotion ?? '', `"${(t.notes ?? '').replace(/"/g, '""')}"`,
+      t.entryDate, t.exitDate ?? ''
+    ])
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `trades_${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Trades exported')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -82,10 +103,19 @@ export default function JournalPage() {
             </h1>
             <p className="text-white/40 text-sm mt-0.5">Track trades, emotions, and build data-driven discipline</p>
           </div>
-          <button onClick={() => setShowForm(true)} className="btn-gold flex items-center gap-2 text-sm py-2.5 px-4">
-            <Plus className="w-4 h-4" />
-            Log Trade
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportToCsv}
+              className="flex items-center gap-2 text-sm text-white/50 hover:text-white glass-card px-3 py-2 hover:bg-white/[0.06] transition-all"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export CSV
+            </button>
+            <button onClick={() => setShowForm(true)} className="btn-gold flex items-center gap-2 text-sm py-2.5 px-4">
+              <Plus className="w-4 h-4" />
+              Log Trade
+            </button>
+          </div>
         </div>
 
         {/* Stats */}

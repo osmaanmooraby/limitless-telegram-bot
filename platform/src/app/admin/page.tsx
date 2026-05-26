@@ -17,6 +17,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<any[]>([])
   const [announcement, setAnnouncement] = useState({ title: '', content: '', type: 'general', isVipOnly: false })
   const [loading, setLoading] = useState(true)
+  const [updatingUser, setUpdatingUser] = useState<string | null>(null)
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}')
@@ -57,6 +58,31 @@ export default function AdminPage() {
         { id: '2', email: 'user@example.com', username: 'user2', plan: 'FREE', role: 'USER', createdAt: new Date().toISOString() },
       ])
     }
+  }
+
+  async function toggleUserPlan(userId: string, currentPlan: string) {
+    setUpdatingUser(userId)
+    const newPlan = currentPlan === 'VIP' ? 'FREE' : 'VIP'
+    try {
+      const token = localStorage.getItem('auth_token') || ''
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userId, plan: newPlan }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success(`User plan updated to ${newPlan}`)
+        fetchUsers()
+      } else {
+        toast.error(data.error || 'Update failed')
+      }
+    } catch {
+      // Optimistic update for demo
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, plan: newPlan } : u))
+      toast.success(`Plan updated to ${newPlan} (local)`)
+    }
+    setUpdatingUser(null)
   }
 
   async function postAnnouncement() {
@@ -179,8 +205,16 @@ export default function AdminPage() {
                       <td className="px-4 py-3 text-xs text-white/30">{timeAgo(u.createdAt)}</td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <button className="text-xs bg-gold-500/10 text-gold-400 hover:bg-gold-500/20 px-2 py-1 rounded transition-colors">
-                            {u.plan === 'VIP' ? 'Revoke VIP' : 'Grant VIP'}
+                          <button
+                            onClick={() => toggleUserPlan(u.id, u.plan)}
+                            disabled={updatingUser === u.id}
+                            className={cn(
+                              'text-xs px-2 py-1 rounded transition-colors disabled:opacity-50',
+                              u.plan === 'VIP'
+                                ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                                : 'bg-gold-500/10 text-gold-400 hover:bg-gold-500/20'
+                            )}>
+                            {updatingUser === u.id ? '...' : u.plan === 'VIP' ? 'Revoke VIP' : 'Grant VIP'}
                           </button>
                         </div>
                       </td>
@@ -243,10 +277,27 @@ export default function AdminPage() {
               </h3>
               <div className="space-y-2">
                 {[
-                  { label: 'Trigger Market Scan', action: () => toast.success('Scan triggered') },
+                  {
+                    label: 'Trigger Market Scan',
+                    action: async () => {
+                      const token = localStorage.getItem('auth_token') || ''
+                      const id = toast.loading('Triggering scan...')
+                      try {
+                        const res = await fetch('/api/scanner/run', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                          body: JSON.stringify({ exchanges: ['binance'], symbols: ['BTC/USDT', 'ETH/USDT', 'SOL/USDT'], timeframes: ['1h'], minConfidence: 60 }),
+                        })
+                        const data = await res.json()
+                        toast.dismiss(id)
+                        if (data.success) toast.success(`Scan complete: ${data.data?.signals?.length ?? 0} signals`)
+                        else toast.error(data.error || 'Scan failed')
+                      } catch { toast.dismiss(id); toast.error('Scan error') }
+                    }
+                  },
                   { label: 'Send System Alert', action: () => setTab('announcements') },
                   { label: 'View User List', action: () => setTab('users') },
-                  { label: 'Export Data', action: () => toast.success('Export started') },
+                  { label: 'Refresh Stats', action: () => { fetchStats(); toast.success('Stats refreshed') } },
                 ].map((item) => (
                   <button key={item.label} onClick={item.action}
                     className="w-full text-left px-4 py-2.5 glass-card hover:bg-white/[0.06] text-sm font-medium transition-all flex items-center justify-between group">

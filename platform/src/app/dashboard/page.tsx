@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import {
   TrendingUp, TrendingDown, Zap, Activity, BarChart3,
   ArrowUpRight, ArrowDownRight, Crown, AlertTriangle, Eye,
-  RefreshCw, Minus
+  RefreshCw, Minus, Sparkles
 } from 'lucide-react'
 import DashboardLayout from '@/components/layout/DashboardLayout'
 import { cn, formatPrice, formatPercent, formatVolume, timeAgo, getSignalBgColor, getSignalColor, getConfidenceColor } from '@/lib/utils'
@@ -41,26 +41,60 @@ export default function DashboardPage() {
   const [tickers, setTickers] = useState<MarketTicker[]>([])
   const [signals, setSignals] = useState<MarketSignal[]>([])
   const [loading, setLoading] = useState(true)
-  const [fearGreed] = useState(62)
+  const [fearGreed, setFearGreed] = useState<{ value: number; classification: string }>({ value: 62, classification: 'Greed' })
+  const [marketSentiment, setMarketSentiment] = useState<string>('BULLISH')
+  const [aiSummary, setAiSummary] = useState<string>('')
+  const [aiLoading, setAiLoading] = useState(false)
   const [lastUpdate, setLastUpdate] = useState(new Date())
 
   async function fetchData() {
     try {
-      const [tickerRes, signalRes] = await Promise.all([
+      const token = localStorage.getItem('auth_token') || ''
+      const [tickerRes, signalRes, overviewRes] = await Promise.all([
         fetch(`/api/market/tickers?${COINS.map((c) => `symbols=${encodeURIComponent(c)}`).join('&')}`),
-        fetch('/api/signals?limit=6', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('auth_token') || ''}` }
-        })
+        fetch('/api/signals?limit=6', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/market/overview'),
       ])
-      const [tickerData, signalData] = await Promise.all([tickerRes.json(), signalRes.json()])
+      const [tickerData, signalData, overviewData] = await Promise.all([
+        tickerRes.json(), signalRes.json(), overviewRes.json(),
+      ])
       if (tickerData.success) setTickers(tickerData.data)
       if (signalData.success) setSignals(signalData.data)
+      if (overviewData.success) {
+        setFearGreed(overviewData.data.fearGreed)
+        setMarketSentiment(overviewData.data.marketSentiment)
+      }
       setLastUpdate(new Date())
     } catch (e) {
       console.error(e)
     } finally {
       setLoading(false)
     }
+  }
+
+  async function fetchAiSummary() {
+    setAiLoading(true)
+    try {
+      const token = localStorage.getItem('auth_token') || ''
+      const btc = tickers.find((t) => t.symbol === 'BTC/USDT')
+      const res = await fetch('/api/ai/commentary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          type: 'market',
+          signals: signals.slice(0, 3),
+          btcPrice: btc?.price || 0,
+          btcChange: btc?.changePercent24h || 0,
+        }),
+      })
+      const data = await res.json()
+      if (data.success && data.data?.summary) {
+        setAiSummary(data.data.summary)
+      } else if (data.error) {
+        setAiSummary(data.error)
+      }
+    } catch {}
+    setAiLoading(false)
   }
 
   useEffect(() => {
@@ -219,10 +253,45 @@ export default function DashboardPage() {
                 <BarChart3 className="w-4 h-4 text-gold-400" />
                 Fear & Greed Index
               </h3>
-              <FearGreedMeter value={fearGreed} />
+              <FearGreedMeter value={fearGreed.value} />
               <div className="mt-3 text-center text-xs text-white/30">
-                Market is in <span className="text-green-400">Greed</span> territory
+                Market is in{' '}
+                <span className={
+                  fearGreed.value <= 25 ? 'text-red-400' :
+                  fearGreed.value <= 40 ? 'text-orange-400' :
+                  fearGreed.value <= 55 ? 'text-yellow-400' :
+                  fearGreed.value <= 75 ? 'text-green-400' : 'text-emerald-400'
+                }>
+                  {fearGreed.classification}
+                </span>{' '}territory
               </div>
+              <div className={cn(
+                'mt-3 text-center text-xs font-semibold px-3 py-1 rounded-full border',
+                marketSentiment === 'BULLISH' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
+                marketSentiment === 'BEARISH' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+              )}>
+                {marketSentiment} MARKET
+              </div>
+
+              {/* AI Summary */}
+              {aiSummary ? (
+                <div className="mt-3 bg-gold-500/5 border border-gold-500/10 rounded-lg p-3">
+                  <div className="text-xs text-gold-400 mb-1 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> AI Summary
+                  </div>
+                  <p className="text-xs text-white/60 leading-relaxed">{aiSummary}</p>
+                </div>
+              ) : (
+                <button
+                  onClick={fetchAiSummary}
+                  disabled={aiLoading}
+                  className="mt-3 w-full text-xs bg-gold-500/10 hover:bg-gold-500/15 text-gold-400 border border-gold-500/20 rounded-lg py-2 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  {aiLoading ? 'Generating...' : 'AI Market Summary'}
+                </button>
+              )}
             </div>
 
             {/* Top Movers */}

@@ -9,6 +9,7 @@ import {
   User, Activity, BarChart3
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useNotifications } from '@/hooks/useMarketData'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -29,12 +30,62 @@ interface UserData {
   plan: string
 }
 
+const TICKER_SYMBOLS = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT', 'XRP/USDT', 'ADA/USDT']
+
+function LiveTickerBar() {
+  const [prices, setPrices] = useState<Record<string, { price: number; change: number }>>({})
+
+  useEffect(() => {
+    async function fetchPrices() {
+      try {
+        const params = TICKER_SYMBOLS.map((s) => `symbols=${encodeURIComponent(s)}`).join('&')
+        const res = await fetch(`/api/market/tickers?${params}`)
+        const data = await res.json()
+        if (data.success) {
+          const map: Record<string, { price: number; change: number }> = {}
+          data.data.forEach((t: any) => { map[t.symbol] = { price: t.price, change: t.changePercent24h } })
+          setPrices(map)
+        }
+      } catch {}
+    }
+    fetchPrices()
+    const id = setInterval(fetchPrices, 15000)
+    return () => clearInterval(id)
+  }, [])
+
+  if (Object.keys(prices).length === 0) return null
+
+  const items = TICKER_SYMBOLS.filter((s) => prices[s])
+
+  return (
+    <div className="bg-black/40 border-b border-white/[0.04] overflow-hidden h-7 flex items-center">
+      <div className="flex items-center gap-6 animate-ticker whitespace-nowrap px-4">
+        {[...items, ...items].map((sym, i) => {
+          const d = prices[sym]
+          if (!d) return null
+          const isPos = d.change >= 0
+          return (
+            <span key={i} className="flex items-center gap-1.5 text-xs font-mono shrink-0">
+              <span className="text-white/50">{sym.split('/')[0]}</span>
+              <span className="text-white/80">${d.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: d.price > 100 ? 2 : 4 })}</span>
+              <span className={isPos ? 'text-green-400' : 'text-red-400'}>
+                {isPos ? '▲' : '▼'}{Math.abs(d.change).toFixed(2)}%
+              </span>
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [user, setUser] = useState<UserData | null>(null)
-  const [notifications, setNotifications] = useState(3)
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false)
+  const { notifications: notifList, unread: notifications, markRead } = useNotifications()
 
   useEffect(() => {
     const stored = localStorage.getItem('user')
@@ -196,6 +247,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+        {/* Live Ticker Bar */}
+        <LiveTickerBar />
+
         {/* Top Bar */}
         <header className="sticky top-0 z-30 bg-[#080808]/80 backdrop-blur-xl border-b border-white/[0.06] h-14 flex items-center px-4 gap-4">
           <button
@@ -224,14 +278,82 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
 
             {/* Notifications */}
-            <button className="relative w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center text-white/50 hover:text-white transition-colors">
-              <Bell className="w-4 h-4" />
-              {notifications > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-gold-500 rounded-full text-[9px] font-bold text-black flex items-center justify-center">
-                  {notifications}
-                </span>
-              )}
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+                className="relative w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center text-white/50 hover:text-white transition-colors"
+              >
+                <Bell className="w-4 h-4" />
+                {notifications > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-gold-500 rounded-full text-[9px] font-bold text-black flex items-center justify-center">
+                    {notifications > 9 ? '9+' : notifications}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              <AnimatePresence>
+                {showNotifDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifDropdown(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-10 z-50 w-80 bg-[#0e0e0e] border border-white/[0.08] rounded-xl shadow-2xl overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+                        <span className="text-sm font-semibold">Notifications</span>
+                        {notifications > 0 && (
+                          <button
+                            onClick={() => { markRead(); setShowNotifDropdown(false) }}
+                            className="text-xs text-gold-400 hover:text-gold-300"
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
+                      <div className="max-h-72 overflow-y-auto divide-y divide-white/[0.04]">
+                        {notifList.length === 0 ? (
+                          <div className="p-6 text-center text-sm text-white/30">
+                            <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                            No notifications yet
+                          </div>
+                        ) : notifList.slice(0, 8).map((n: any) => (
+                          <div
+                            key={n.id}
+                            className={cn(
+                              'px-4 py-3 hover:bg-white/[0.03] transition-colors cursor-pointer',
+                              !n.isRead && 'bg-gold-500/[0.03]'
+                            )}
+                            onClick={() => markRead(n.id)}
+                          >
+                            <div className="flex items-start gap-2">
+                              {!n.isRead && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-gold-400 mt-1.5 shrink-0" />
+                              )}
+                              <div className={cn('flex-1', n.isRead && 'pl-3.5')}>
+                                <div className="text-sm font-medium text-white/80 leading-snug">{n.title}</div>
+                                {n.message && <div className="text-xs text-white/40 mt-0.5 line-clamp-2">{n.message}</div>}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="p-3 border-t border-white/[0.06] text-center">
+                        <button
+                          onClick={() => setShowNotifDropdown(false)}
+                          className="text-xs text-white/30 hover:text-white/50 transition-colors"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </header>
 

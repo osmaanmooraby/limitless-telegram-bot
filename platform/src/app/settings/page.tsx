@@ -23,6 +23,7 @@ export default function SettingsPage() {
   const [newKey, setNewKey] = useState({ exchange: 'binance', apiKey: '', apiSecret: '', label: '' })
   const [showSecret, setShowSecret] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [apiKeys, setApiKeys] = useState<any[]>([])
 
   useEffect(() => {
     const stored = localStorage.getItem('user')
@@ -31,7 +32,43 @@ export default function SettingsPage() {
       setUser(u)
       setProfile({ fullName: u.fullName || '', telegramChatId: u.telegramChatId || '', webhookUrl: u.webhookUrl || '' })
     }
+    // Load saved alert preferences
+    const savedAlerts = localStorage.getItem('alertPreferences')
+    if (savedAlerts) {
+      try { setAlerts(JSON.parse(savedAlerts)) } catch {}
+    }
+    // Load API keys
+    fetchApiKeys()
   }, [])
+
+  async function fetchApiKeys() {
+    const token = localStorage.getItem('auth_token') || ''
+    try {
+      const res = await fetch('/api/user/apikeys', { headers: { Authorization: `Bearer ${token}` } })
+      const data = await res.json()
+      if (data.success) setApiKeys(data.data)
+    } catch {}
+  }
+
+  async function deleteApiKey(id: string) {
+    const token = localStorage.getItem('auth_token') || ''
+    try {
+      const res = await fetch('/api/user/apikeys', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ keyId: id }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success('API key removed')
+        fetchApiKeys()
+      } else {
+        toast.error(data.error || 'Failed to delete')
+      }
+    } catch {
+      toast.error('Error removing key')
+    }
+  }
 
   async function saveProfile() {
     setSaving(true)
@@ -179,7 +216,13 @@ export default function SettingsPage() {
                 </div>
               ))}
             </div>
-            <button className="btn-gold flex items-center gap-2 text-sm py-2.5 px-5">
+            <button
+              onClick={() => {
+                localStorage.setItem('alertPreferences', JSON.stringify(alerts))
+                toast.success('Alert preferences saved')
+              }}
+              className="btn-gold flex items-center gap-2 text-sm py-2.5 px-5"
+            >
               <Save className="w-4 h-4" />
               Save Alert Settings
             </button>
@@ -239,11 +282,45 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </div>
-              <button onClick={saveApiKey} disabled={saving} className="btn-gold flex items-center gap-2 text-sm py-2.5 px-5">
+              <button
+                onClick={async () => {
+                  await saveApiKey()
+                  fetchApiKeys()
+                }}
+                disabled={saving}
+                className="btn-gold flex items-center gap-2 text-sm py-2.5 px-5"
+              >
                 <Plus className="w-4 h-4" />
                 {saving ? 'Saving...' : 'Connect Exchange'}
               </button>
             </div>
+
+            {/* Existing API Keys */}
+            {apiKeys.length > 0 && (
+              <div className="glass-card p-5 space-y-3">
+                <h3 className="font-medium text-sm text-white/70">Connected Exchanges</h3>
+                {apiKeys.map((key: any) => (
+                  <div key={key.id} className="flex items-center justify-between p-3 bg-white/[0.03] rounded-lg border border-white/[0.05]">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                        <span className="text-sm font-medium capitalize">{key.exchange}</span>
+                        {key.label && <span className="text-xs text-white/30">{key.label}</span>}
+                      </div>
+                      <div className="text-xs text-white/30 font-mono mt-0.5">
+                        {key.maskedKey || '••••••••••••••••'}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => deleteApiKey(key.id)}
+                      className="text-white/20 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
 
