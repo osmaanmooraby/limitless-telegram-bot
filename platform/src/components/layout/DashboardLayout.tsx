@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/scanner', label: 'Scanner', icon: Scan },
   { href: '/signals', label: 'Signals', icon: Zap },
+  { href: '/charts', label: 'Charts', icon: BarChart3 },
   { href: '/journal', label: 'Journal', icon: BookOpen },
   { href: '/vip', label: 'VIP Zone', icon: Crown, vipOnly: true },
   { href: '/settings', label: 'Settings', icon: Settings },
