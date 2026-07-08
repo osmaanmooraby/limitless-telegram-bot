@@ -1,0 +1,261 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  VIP
+  ADMIN
+}
+
+enum PlanType {
+  FREE
+  VIP
+  ENTERPRISE
+}
+
+enum SignalType {
+  BULLISH_CROSSOVER
+  BEARISH_CROSSOVER
+  BREAKOUT
+  PULLBACK
+  RSI_DIVERGENCE
+  TREND_CONTINUATION
+  VOLUME_SPIKE
+}
+
+enum SignalStrength {
+  WEAK
+  MODERATE
+  STRONG
+  VERY_STRONG
+}
+
+enum TradeDirection {
+  LONG
+  SHORT
+}
+
+enum TradeStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum AlertType {
+  TELEGRAM
+  EMAIL
+  BROWSER
+  WEBHOOK
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  username             String    @unique
+  passwordHash         String
+  fullName             String?
+  avatarUrl            String?
+  role                 UserRole  @default(USER)
+  plan                 PlanType  @default(FREE)
+  planExpiresAt        DateTime?
+  isEmailVerified      Boolean   @default(false)
+  emailVerifyToken     String?
+  resetPasswordToken   String?
+  resetPasswordExpires DateTime?
+  telegramChatId       String?
+  webhookUrl           String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  apiKeys       ExchangeApiKey[]
+  watchlist     WatchlistItem[]
+  alerts        AlertConfig[]
+  trades        Trade[]
+  notifications Notification[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model ExchangeApiKey {
+  id          String    @id @default(cuid())
+  userId      String
+  exchange    String
+  apiKey      String
+  apiSecret   String
+  apiPassword String?
+  isActive    Boolean   @default(true)
+  label       String?
+  permissions String[]  @default([])
+  lastUsed    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, exchange])
+  @@map("exchange_api_keys")
+}
+
+model MarketSignal {
+  id              String        @id @default(cuid())
+  symbol          String
+  exchange        String
+  timeframe       String
+  signalType      SignalType
+  strength        SignalStrength
+  direction       String
+  confidence      Float
+  currentPrice    Float
+  ema9            Float?
+  ema21           Float?
+  ema200          Float?
+  rsi             Float?
+  macdLine        Float?
+  macdSignal      Float?
+  macdHistogram   Float?
+  volume          Float?
+  avgVolume       Float?
+  volumeRatio     Float?
+  conditions      Json
+  explanation     String
+  aiCommentary    String?
+  targetPrice     Float?
+  stopLoss        Float?
+  riskRewardRatio Float?
+  isVipOnly       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([symbol, exchange, timeframe])
+  @@index([createdAt])
+  @@map("market_signals")
+}
+
+model WatchlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  symbol    String
+  exchange  String   @default("binance")
+  notes     String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, symbol, exchange])
+  @@map("watchlist_items")
+}
+
+model AlertConfig {
+  id           String    @id @default(cuid())
+  userId       String
+  symbol       String?
+  exchange     String?
+  alertType    AlertType
+  conditions   Json
+  isActive     Boolean   @default(true)
+  lastTriggered DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("alert_configs")
+}
+
+model Trade {
+  id           String         @id @default(cuid())
+  userId       String
+  symbol       String
+  exchange     String
+  direction    TradeDirection
+  status       TradeStatus    @default(OPEN)
+  entryPrice   Float
+  exitPrice    Float?
+  stopLoss     Float?
+  takeProfit   Float?
+  quantity     Float
+  leverage     Float          @default(1)
+  pnl          Float?
+  pnlPercent   Float?
+  fees         Float?
+  notes        String?
+  emotion      String?
+  exitEmotion  String?
+  tags         String[]       @default([])
+  screenshot   String?
+  signalId     String?
+  entryDate    DateTime
+  exitDate     DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("trades")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info")
+  isRead    Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  type      String   @default("general")
+  isActive  Boolean  @default(true)
+  isVipOnly Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("announcements")
+}
+
+model EducationalContent {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  category  String
+  tags      String[] @default([])
+  isVipOnly Boolean  @default(false)
+  viewCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("educational_content")
+}
+
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     String
+  module    String
+  message   String
+  data      Json?
+  createdAt DateTime @default(now())
+
+  @@map("system_logs")
+}
