@@ -5,5 +5,11 @@
       "src": "platform/package.json",
       "use": "@vercel/next"
     }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/platform/$1"
+    }
   ]
 }
